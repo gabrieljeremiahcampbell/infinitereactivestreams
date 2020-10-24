@@ -1,0 +1,6 @@
+org/gabrieljcampbell/infinitereactivestreams/publisher/ContentProviderSubscription.class
+org/gabrieljcampbell/infinitereactivestreams/subscriber/InvestorController.class
+org/gabrieljcampbell/infinitereactivestreams/model/StockStats.class
+org/gabrieljcampbell/infinitereactivestreams/InfiniteReactiveStreamsApp.class
+org/gabrieljcampbell/infinitereactivestreams/subscriber/InvestorSubscriber.class
+org/gabrieljcampbell/infinitereactivestreams/model/StockPriceContent.class
