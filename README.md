@@ -12,30 +12,63 @@ In this tutorial we are going to use the RxJava3 Reactive Streams implementation
 
 We present two applications in this tutorial. The main application with the all the functionality is the InfiniteReactiveStreams application and the second is just a small Spring-maven-java application that exposes a REST endpoint to GET stock prices.
 
-The main anatomy of the broadcaster is as follows:
+The main anatomy of the broadcaster, the StockPriceContentController is as follows:
+
+	@GetMapping("/stockpricestats")
+	public StockPriceContent priceStats() {		
+		long priceA = Math.round((Math.random()*100));
+		long priceB = Math.round((Math.random()*100));
+		return new StockPriceContent(counter.incrementAndGet(), 
+			"Stock prices" + String.format(TEMPLATEA, priceA)
+			+ String.format(TEMPLATEB, priceB));
+	}
+
 
 Next we look at the InfiniteReactiveStreams application. The important parts are how we generate the infinite stream using RxJava3 generate(Note: I wrapped the code so it could be clearer in this post):
 
-In line 42 we use the Flowable.generate(Customer<Emitter> generator) In order to create the stream. The values that comprise the stream are StockPriceContent POJOs that we GET from the stockprice boardcaster application, which shown above is running on my local machine on port 8082 with the URL “http://localhost:8082/stockpricestats&#8221;.
+public static void startStreaming(){
+        InvestorSubscriber investorSubscriber = InvestorSubscriber.getInvestorSubscriber();
 
-In line 51 we call the emitter’s onNext() method in order to pass the stockPriceContent to the the stream.
+        RestTemplate restTemplate = new RestTemplate();
+        
 
-Next in line 56 we create a connectableFlow using the replay functionality, we would like the replay buffer to hold seven recent stock prices and once we have read these we truncate them from the stream hence the “true” argument in the replay method.
+        Flowable<StockPriceContent> flow = Flowable.
+            generate((stockPriceContentEmitter) -> {
+                Thread.sleep(100);
+            StockPriceContent stockPriceContent = 
+                restTemplate.
+                    getForObject(
+                        "http://localhost:8082/stockpricestats", StockPriceContent.class);
+            
+            logger.info("Emitting : "+stockPriceContent.toString());
+            stockPriceContentEmitter.onNext(stockPriceContent);});
+            
 
-In line 58 – 61 the investorSubscriber subscribes to the connectable flow. Lastly in line 63 we connect mean that the flow will start generate items when the subscriber requests them.
+            logger.info("Buffer Size = "+ Flowable.bufferSize());
+
+        ConnectableFlowable<StockPriceContent> connectableFlow = flow.replay(7, true);
+        
+        connectableFlow.subscribe(investorSubscriber);
+        ContentProviderSubscription contentProviderSubscription =
+             new ContentProviderSubscription( connectableFlow, investorSubscriber);
+             investorSubscriber.setSubscription(contentProviderSubscription);
+
+        connectableFlow.connect();   
+    }
+
+
+We use the Flowable.generate(Customer<Emitter> generator) In order to create the stream. The values that comprise the stream are StockPriceContent POJOs that we GET from the stockprice boardcaster application, which shown above is running on my local machine on port 8082 with the URL “http://localhost:8082/stockpricestats;.
+
+Next we call the emitter’s onNext() method in order to pass the stockPriceContent to the the stream.
+
+Next  we create a connectableFlow using the replay functionality, we would like the replay buffer to hold seven recent stock prices and once we have read these we truncate them from the stream hence the “true” argument in the replay method.
+
+Then the investorSubscriber subscribes to the connectable flow. Lastly we connect mean that the flow will start generate items when the subscriber requests them.
 
 The next class that we look at is the ContentProviderSubscription, particularly the request(n) method:
 
-The connectable flow is referenced by publisher here. The ConnectableFlow.blockStream method is used because this enables us to truncate the infinite stream to a finite stream of n items using the limit(n) method in the Java Streams API. The values from the stream are added to a StockPriceContent list. This will then be given back to the Investor via a REST GET /stockpricesummary API:
+The connectable flow is referenced by publisher here. The ConnectableFlow.blockStream method is used because this enables us to truncate the infinite stream to a finite stream of n items using the limit(n) method in the Java Streams API. The values from the stream are added to a StockPriceContent list. This will then be given back to the Investor via a REST GET /stockpricesummary API.
 
-We have now completed the code. We can now run and test the application. First we start the broadcaster and test it via the URL:
-
-Next we run the InfiniteReactiveStreams application. If all goes well we should have seven of the latest stock prices for company A and B:
-
-As expected. Note result 1 is removed from the list as we requested it during the test and not through the InfiniteReactiveStreams application. Calling GET /stockpricesummary API again we should retrieve the next seven latest prices spaced out by 100 milliseconds due to the Thread.sleep method used in the generate method above:
-
-In this tutorial we used a “pull” to create the infinite stream- in a later tutorial I will show how to do this using a “push”.
-
-The code for this tutorial can be found here.
+The blog post for this tutorial can be found at https://gabrieljeremiahcampbell.wordpress.com/2020/10/25/infinite-reactive-streams-with-rxjava3-with-a-tutorial/.
 
 As always Happy Coding!
