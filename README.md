@@ -57,7 +57,7 @@ public static void startStreaming(){
     }
 
 
-We use the Flowable.generate(Customer<Emitter> generator) In order to create the stream. The values that comprise the stream are StockPriceContent POJOs that we GET from the stockprice boardcaster application, which shown above is running on my local machine on port 8082 with the URL “http://localhost:8082/stockpricestats;.
+We use the Flowable.generate(Customer<Emitter> generator) In order to create the stream. The values that comprise the stream are StockPriceContent POJOs that we GET from the stockprice boardcaster application, which is set to run on port 8082 with the URL “http://localhost:8082/stockpricestats;.
 
 Next we call the emitter’s onNext() method in order to pass the stockPriceContent to the the stream.
 
